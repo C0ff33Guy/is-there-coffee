@@ -1,50 +1,59 @@
 const express = require('express');
+const CyclicDB = require('cyclic-dynamodb');
 
 const app = express();
 
-const expressWs = require('express-ws')(app);
+const db = CyclicDB(process.env.CYCLIC_DB);
+const DB = db.collection('status')
 
 const status = {
   state: null,
   updatedAt: new Date,
 }
 
-function broadcast(data) {
-  expressWs.getWss().clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(data);
-    }
+function isOld(d) {
+  const date = new Date(d);
+  const now = new Date();
+
+  const isoDate = date.toISOString();
+  const isoNow = now.toISOString();
+
+  return (isoDate.slice(0, 10) != isoNow.slice(0, 10))
+}
+
+async function setState(val) {
+  const now = new Date();
+
+  return DB.set('status', {
+    state: val,
+    updatedAt: now.toISOString(),
   })
 }
 
-function state() {
-  if (status.updatedAt.getDate() != (new Date).getDate()) {
-    status.state = null;
-    status.updatedAt = new Date();
+async function state() {
+  const status = DB.get('status');
+
+  if (!status || !status.updatedAt || isOld(status.updatedAt)) {
+    await setState(null);
   }
 
-  return JSON.stringify({
-    state: status.state,
-    updatedAt: status.updatedAt.toISOString(),
-  })
+  return status;
 }
 
-app.ws('/ws', (ws, req) => {
-  console.log('WS connected');
-  ws.send(state())
-  ws.on('message', (msg) => {
-    if (!['true', 'false'].includes(msg.toString())) return;
-    const val = JSON.parse(msg);
+app.get('/status', async (req, res) => {
+  return res.json(await state());
+})
 
-    status.state = val;
-    status.updatedAt = new Date();
-    console.log(status.updatedAt, val)
+app.post('/status/true', async (req, res) => {
+  await setState(true);
+  res.end();
+})
 
-    broadcast(state());
-  })
+app.post('/status/false', async (req, res) => {
+  await setState(false);
+  res.end();
 })
 
 app.use(express.static('public'));
 
 app.listen(process.env.PORT || 80);
-console.log('listening');
