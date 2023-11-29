@@ -32,6 +32,7 @@ function state() {
 }
 
 app.ws('/ws', (ws, req) => {
+  console.log('WS connected');
   ws.send(state())
   ws.on('message', (msg) => {
     if (!['true', 'false'].includes(msg.toString())) return;
