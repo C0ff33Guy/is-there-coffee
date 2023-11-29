@@ -9,8 +9,6 @@ const status = {
   updatedAt: new Date,
 }
 
-app.use(express.static('public'));
-
 function broadcast(data) {
   expressWs.getWss().clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
@@ -45,6 +43,8 @@ app.ws('/ws', (ws, req) => {
     broadcast(state());
   })
 })
+
+app.use(express.static('public'));
 
 app.listen(process.env.PORT || 80);
 console.log('listening');
