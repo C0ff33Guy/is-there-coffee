@@ -1,1 +1,6 @@
-{ "dependencies": { "express-ws": "^5.0.2" } }
+{
+  "dependencies": { "express-ws": "^5.0.2" },
+  "scripts": {
+    "start": "node index.js"
+  }
+}
