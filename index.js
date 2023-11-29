@@ -31,13 +31,13 @@ async function setState(val) {
 }
 
 async function state() {
-  const status = DB.get('status');
+  const status = await DB.get('status');
 
-  if (!status || !status.updatedAt || isOld(status.updatedAt)) {
+  if (!status || !status.props.updatedAt || isOld(status.props.updatedAt)) {
     await setState(null);
   }
 
-  return status;
+  return status.props;
 }
 
 app.get('/status', async (req, res) => {
